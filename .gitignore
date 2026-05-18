@@ -1,0 +1,27 @@
+# 环境变量（含 API 密钥，不可提交）
+.env
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# 记忆桶数据（个人数据，不提交）
+buckets/
+
+# 日志
+*.log
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
