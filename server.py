@@ -61,6 +61,8 @@ except Exception:
 try:
     import mcp.server.streamable_http as _sh
     _sh.StreamableHTTPServerTransport._check_content_type = lambda self, req: True
+    # Also bypass Accept header validation — Operit and some clients omit Accept header
+    _sh.StreamableHTTPServerTransport._check_accept_headers = lambda self, req: (True, True)
 except Exception:
     pass
 
