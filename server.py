@@ -1359,19 +1359,32 @@ async def api_create_bucket(request):
     valence = max(0.0, min(1.0, float(body.get("valence", 0.5) or 0.5)))
     arousal = max(0.0, min(1.0, float(body.get("arousal", 0.3) or 0.3)))
     pinned = bool(body.get("pinned", False))
+    feel = bool(body.get("feel", False))
     name = (body.get("name") or "").strip() or None
 
-    bucket_id = await bucket_mgr.create(
-        content=content,
-        tags=tags,
-        importance=importance,
-        domain=domain or ["未分类"],
-        valence=valence,
-        arousal=arousal,
-        name=name,
-        bucket_type="permanent" if pinned else "dynamic",
-        pinned=pinned,
-    )
+    if feel:
+        bucket_id = await bucket_mgr.create(
+            content=content,
+            tags=[],
+            importance=5,
+            domain=[],
+            valence=valence,
+            arousal=arousal,
+            name=name,
+            bucket_type="feel",
+        )
+    else:
+        bucket_id = await bucket_mgr.create(
+            content=content,
+            tags=tags,
+            importance=importance,
+            domain=domain or ["未分类"],
+            valence=valence,
+            arousal=arousal,
+            name=name,
+            bucket_type="permanent" if pinned else "dynamic",
+            pinned=pinned,
+        )
     try:
         await embedding_engine.generate_and_store(bucket_id, content)
     except Exception:
