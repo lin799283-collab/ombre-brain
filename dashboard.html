@@ -576,6 +576,69 @@
   .flow-step.active { border-color: var(--accent); color: var(--accent); }
   .flow-arrow { color: var(--text-light); font-size: 16px; }
 
+  /* Create / Edit modal */
+  #edit-modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.45);
+    display: none; align-items: center; justify-content: center;
+  }
+  #edit-modal-overlay.open { display: flex; }
+  #edit-modal {
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px 28px 28px;
+    max-width: 520px; width: 92%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  }
+  #edit-modal h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 600; color: var(--accent);
+    margin-bottom: 22px;
+  }
+  #edit-modal textarea {
+    width: 100%;
+    min-height: 120px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: inherit; font-size: 13px;
+    resize: vertical; line-height: 1.6;
+    box-shadow: inset 2px 2px 4px var(--shadow-dark-subtle), inset -2px -2px 4px var(--shadow-light);
+  }
+  #edit-modal textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow), inset 2px 2px 4px var(--shadow-dark-subtle);
+  }
+  .ef-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .ef-row label { width: 90px; font-size: 12px; color: var(--text-dim); flex-shrink: 0; font-weight: 500; padding-top: 10px; letter-spacing: .2px; }
+  .ef-row input[type=text], .ef-row input[type=number] {
+    flex: 1;
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px;
+    border-radius: 12px; font-family: inherit; font-size: 13px;
+    box-shadow: inset 2px 2px 4px var(--shadow-dark-subtle), inset -2px -2px 4px var(--shadow-light);
+  }
+  .ef-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow), inset 2px 2px 4px var(--shadow-dark-subtle); }
+  .ef-row input[type=checkbox] { width: 18px; height: 18px; margin-top: 10px; cursor: pointer; accent-color: var(--accent); }
+  .ef-row-full { align-items: flex-start; }
+  .ef-row-full label { padding-top: 12px; }
+
+  /* Action buttons inside detail panel */
+  .detail-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-danger {
+    padding: 10px 22px;
+    background: linear-gradient(145deg, #c06060, #9b3a3a);
+    color: #fff; border: none; border-radius: 20px;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 4px 4px 10px rgba(139,74,74,.3), -3px -3px 8px var(--shadow-light);
+  }
+  .btn-danger:hover { transform: translateY(-2px); box-shadow: 6px 6px 14px rgba(139,74,74,.4), -4px -4px 10px var(--shadow-light); }
+
   @media (max-width: 768px) {
     .header { padding: 20px; flex-wrap: wrap; }
     .header h1 { font-size: 22px; }
@@ -607,7 +670,8 @@
   <div class="search-bar">
     <input type="text" id="search-input" placeholder="搜索记忆…" />
   </div>
-  <button onclick="doLogout()" title="退出登录" style="margin-left:12px;background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;">退出</button>
+  <button onclick="openCreateModal()" style="margin-left:8px;background:linear-gradient(145deg,var(--accent-light),var(--accent));color:#F0EDE4;border:none;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;box-shadow:4px 4px 8px rgba(40,65,65,.25),-3px -3px 6px var(--shadow-light);">+ 新建记忆</button>
+  <button onclick="doLogout()" title="退出登录" style="margin-left:8px;background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;">退出</button>
 </div>
 
 <div class="tabs">
@@ -836,6 +900,54 @@
       <button onclick="doLogout()" style="color:var(--negative);border-color:var(--negative);">退出登录</button>
     </div>
 
+  </div>
+</div>
+
+<!-- Create / Edit Memory Modal -->
+<div id="edit-modal-overlay">
+  <div id="edit-modal">
+    <h2 id="edit-modal-title">新建记忆</h2>
+    <div class="ef-row ef-row-full">
+      <label>内容 *</label>
+      <textarea id="ef-content" placeholder="记忆正文，支持多行…"></textarea>
+    </div>
+    <div class="ef-row">
+      <label>名称</label>
+      <input type="text" id="ef-name" placeholder="简短标题（可留空）">
+    </div>
+    <div class="ef-row">
+      <label>域</label>
+      <input type="text" id="ef-domain" placeholder="person,event,… 逗号分隔">
+    </div>
+    <div class="ef-row">
+      <label>标签</label>
+      <input type="text" id="ef-tags" placeholder="tag1,tag2 逗号分隔">
+    </div>
+    <div class="ef-row">
+      <label>重要度</label>
+      <input type="number" id="ef-importance" min="1" max="10" value="5">
+    </div>
+    <div class="ef-row">
+      <label>效价 V</label>
+      <input type="number" id="ef-valence" min="0" max="1" step="0.05" value="0.5">
+    </div>
+    <div class="ef-row">
+      <label>唤醒度 A</label>
+      <input type="number" id="ef-arousal" min="0" max="1" step="0.05" value="0.3">
+    </div>
+    <div class="ef-row">
+      <label>钉选</label>
+      <input type="checkbox" id="ef-pinned">
+    </div>
+    <div class="ef-row">
+      <label>已解决</label>
+      <input type="checkbox" id="ef-resolved">
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button class="btn-primary" onclick="saveEditForm()">保存</button>
+      <button class="btn-secondary" onclick="closeEditModal()">取消</button>
+    </div>
+    <div id="edit-modal-status" style="margin-top:12px;font-size:13px;min-height:20px;"></div>
   </div>
 </div>
 
@@ -1166,6 +1278,8 @@ async function searchBuckets(query) {
   }
 }
 
+var _currentDetailBucket = null;
+
 async function showDetail(id) {
   var panel = document.getElementById('detail-panel');
   var content = document.getElementById('detail-content');
@@ -1175,6 +1289,7 @@ async function showDetail(id) {
   try {
     var res = await fetch(BASE + '/api/bucket/' + id);
     var b = await res.json();
+    _currentDetailBucket = b;
     var meta = b.metadata || {};
     content.innerHTML =
       '<h2>' + esc(meta.name || id) + '</h2>' +
@@ -1195,7 +1310,11 @@ async function showDetail(id) {
         '<div class="field"><label>创建</label>' + (meta.created || '—') + '</div>' +
         '<div class="field"><label>最后活跃</label>' + (meta.last_active || '—') + '</div>' +
       '</div>' +
-      '<div class="detail-content">' + esc(b.content) + '</div>';
+      '<div class="detail-content">' + esc(b.content) + '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="btn-primary" onclick="openEditModal(_currentDetailBucket)">编辑</button>' +
+        '<button class="btn-danger" onclick="deleteBucket(\'' + id + '\', \'' + esc(meta.name || id).replace(/'/g, "\\'") + '\')">删除</button>' +
+      '</div>';
   } catch (e) {
     content.innerHTML = '<div class="loading">加载失败: ' + e.message + '</div>';
   }
@@ -1494,6 +1613,110 @@ async function saveConfig(persist) {
     }
   } catch (e) {
     status.innerHTML = '<span style="color:var(--negative)">✗ 请求失败: ' + e.message + '</span>';
+  }
+}
+
+// ========================================
+// Memory CRUD
+// ========================================
+var _editingBucketId = null;
+
+function openCreateModal() {
+  _editingBucketId = null;
+  document.getElementById('edit-modal-title').textContent = '新建记忆';
+  document.getElementById('ef-content').value = '';
+  document.getElementById('ef-name').value = '';
+  document.getElementById('ef-domain').value = '';
+  document.getElementById('ef-tags').value = '';
+  document.getElementById('ef-importance').value = '5';
+  document.getElementById('ef-valence').value = '0.50';
+  document.getElementById('ef-arousal').value = '0.30';
+  document.getElementById('ef-pinned').checked = false;
+  document.getElementById('ef-resolved').checked = false;
+  document.getElementById('edit-modal-status').textContent = '';
+  document.getElementById('edit-modal-overlay').classList.add('open');
+  document.getElementById('ef-content').focus();
+}
+
+function openEditModal(b) {
+  if (!b) return;
+  _editingBucketId = b.id;
+  var meta = b.metadata || {};
+  document.getElementById('edit-modal-title').textContent = '编辑记忆';
+  document.getElementById('ef-content').value = b.content || '';
+  document.getElementById('ef-name').value = meta.name || '';
+  document.getElementById('ef-domain').value = (meta.domain || []).join(', ');
+  document.getElementById('ef-tags').value = (meta.tags || []).join(', ');
+  document.getElementById('ef-importance').value = meta.importance || 5;
+  document.getElementById('ef-valence').value = (meta.valence || 0.5).toFixed(2);
+  document.getElementById('ef-arousal').value = (meta.arousal || 0.3).toFixed(2);
+  document.getElementById('ef-pinned').checked = meta.pinned || false;
+  document.getElementById('ef-resolved').checked = meta.resolved || false;
+  document.getElementById('edit-modal-status').textContent = '';
+  document.getElementById('edit-modal-overlay').classList.add('open');
+  document.getElementById('ef-content').focus();
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-overlay').classList.remove('open');
+}
+
+document.getElementById('edit-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+async function saveEditForm() {
+  var content = document.getElementById('ef-content').value.trim();
+  if (!content) {
+    document.getElementById('edit-modal-status').innerHTML = '<span style="color:var(--negative)">内容不能为空</span>';
+    return;
+  }
+  var body = {
+    content: content,
+    name: document.getElementById('ef-name').value.trim(),
+    domain: document.getElementById('ef-domain').value,
+    tags: document.getElementById('ef-tags').value,
+    importance: parseInt(document.getElementById('ef-importance').value) || 5,
+    valence: parseFloat(document.getElementById('ef-valence').value) || 0.5,
+    arousal: parseFloat(document.getElementById('ef-arousal').value) || 0.3,
+    pinned: document.getElementById('ef-pinned').checked,
+    resolved: document.getElementById('ef-resolved').checked,
+  };
+  var statusEl = document.getElementById('edit-modal-status');
+  statusEl.textContent = '保存中…';
+  try {
+    var url = _editingBucketId ? (BASE + '/api/bucket/' + _editingBucketId) : (BASE + '/api/bucket');
+    var method = _editingBucketId ? 'PUT' : 'POST';
+    var res = await authFetch(url, { method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!res) return;
+    var data = await res.json();
+    if (res.ok) {
+      statusEl.innerHTML = '<span style="color:var(--positive)">✓ 保存成功</span>';
+      setTimeout(function() { closeEditModal(); loadBuckets(); }, 700);
+    } else {
+      statusEl.innerHTML = '<span style="color:var(--negative)">✗ ' + (data.error || '保存失败') + '</span>';
+    }
+  } catch(e) {
+    statusEl.innerHTML = '<span style="color:var(--negative)">✗ ' + e.message + '</span>';
+  }
+}
+
+async function deleteBucket(id, name) {
+  if (!confirm('确定删除「' + name + '」？\n此操作不可撤销。')) return;
+  try {
+    var res = await authFetch(BASE + '/api/bucket/' + id, { method: 'DELETE' });
+    if (!res) return;
+    if (res.ok) {
+      closeDetail();
+      allBuckets = allBuckets.filter(function(b) { return b.id !== id; });
+      renderBuckets(filterBuckets(allBuckets));
+      updateStats();
+    } else {
+      var d = await res.json();
+      alert('删除失败: ' + (d.error || '未知错误'));
+    }
+  } catch(e) {
+    alert('删除失败: ' + e.message);
   }
 }
 

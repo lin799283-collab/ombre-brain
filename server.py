@@ -1334,6 +1334,119 @@ async def api_bucket_detail(request):
     })
 
 
+@mcp.custom_route("/api/bucket", methods=["POST"])
+async def api_create_bucket(request):
+    """Manually create a new bucket, bypassing auto-tagging and merge."""
+    from starlette.responses import JSONResponse
+    err = _require_auth(request)
+    if err: return err
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    content = (body.get("content") or "").strip()
+    if not content:
+        return JSONResponse({"error": "content required"}, status_code=400)
+
+    domain = body.get("domain", [])
+    if isinstance(domain, str):
+        domain = [d.strip() for d in domain.split(",") if d.strip()]
+    tags = body.get("tags", [])
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+    importance = max(1, min(10, int(body.get("importance", 5) or 5)))
+    valence = max(0.0, min(1.0, float(body.get("valence", 0.5) or 0.5)))
+    arousal = max(0.0, min(1.0, float(body.get("arousal", 0.3) or 0.3)))
+    pinned = bool(body.get("pinned", False))
+    name = (body.get("name") or "").strip() or None
+
+    bucket_id = await bucket_mgr.create(
+        content=content,
+        tags=tags,
+        importance=importance,
+        domain=domain or ["未分类"],
+        valence=valence,
+        arousal=arousal,
+        name=name,
+        bucket_type="permanent" if pinned else "dynamic",
+        pinned=pinned,
+    )
+    try:
+        await embedding_engine.generate_and_store(bucket_id, content)
+    except Exception:
+        pass
+    return JSONResponse({"id": bucket_id, "ok": True})
+
+
+@mcp.custom_route("/api/bucket/{bucket_id}", methods=["PUT"])
+async def api_update_bucket(request):
+    """Update a bucket's content and/or metadata fields."""
+    from starlette.responses import JSONResponse
+    err = _require_auth(request)
+    if err: return err
+    bucket_id = request.path_params["bucket_id"]
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+    updates = {}
+    if body.get("content"):
+        updates["content"] = body["content"]
+    if "name" in body:
+        updates["name"] = body["name"]
+    if "domain" in body:
+        d = body["domain"]
+        if isinstance(d, str):
+            d = [x.strip() for x in d.split(",") if x.strip()]
+        updates["domain"] = d or ["未分类"]
+    if "tags" in body:
+        t = body["tags"]
+        if isinstance(t, str):
+            t = [x.strip() for x in t.split(",") if x.strip()]
+        updates["tags"] = t
+    if "importance" in body:
+        updates["importance"] = max(1, min(10, int(body["importance"] or 5)))
+    if "valence" in body:
+        updates["valence"] = max(0.0, min(1.0, float(body["valence"] or 0.5)))
+    if "arousal" in body:
+        updates["arousal"] = max(0.0, min(1.0, float(body["arousal"] or 0.3)))
+    if "resolved" in body:
+        updates["resolved"] = bool(body["resolved"])
+    if "pinned" in body:
+        updates["pinned"] = bool(body["pinned"])
+        if updates["pinned"]:
+            updates["importance"] = 10
+
+    if not updates:
+        return JSONResponse({"error": "no fields to update"}, status_code=400)
+
+    success = await bucket_mgr.update(bucket_id, **updates)
+    if not success:
+        return JSONResponse({"error": "not found"}, status_code=404)
+
+    if "content" in updates:
+        try:
+            await embedding_engine.generate_and_store(bucket_id, updates["content"])
+        except Exception:
+            pass
+    return JSONResponse({"ok": True})
+
+
+@mcp.custom_route("/api/bucket/{bucket_id}", methods=["DELETE"])
+async def api_delete_bucket(request):
+    """Delete a bucket by ID."""
+    from starlette.responses import JSONResponse
+    err = _require_auth(request)
+    if err: return err
+    bucket_id = request.path_params["bucket_id"]
+    success = await bucket_mgr.delete(bucket_id)
+    if success:
+        embedding_engine.delete_embedding(bucket_id)
+    return JSONResponse({"ok": success, "id": bucket_id})
+
+
 @mcp.custom_route("/api/search", methods=["GET"])
 async def api_search(request):
     """Search buckets by query."""
